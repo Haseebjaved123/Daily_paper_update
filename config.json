@@ -1,0 +1,27 @@
+{
+  "paper_selection": {
+    "max_results": 50,
+    "min_abstract_length": 200,
+    "max_abstract_length": 2000,
+    "min_title_length": 20,
+    "max_authors": 10,
+    "min_authors": 1
+  },
+  "domains": {
+    "cs.AI": "AI",
+    "cs.LG": "ML", 
+    "cs.CL": "NLP",
+    "cs.CV": "CV",
+    "cs.RO": "RL",
+    "cs.HC": "Healthcare AI",
+    "cs.MM": "Multimodal",
+    "stat.ML": "Theory",
+    "cs.NE": "Neural Networks",
+    "cs.IR": "Information Retrieval"
+  },
+  "schedule": {
+    "timezone": "UTC",
+    "hour": 6,
+    "minute": 0
+  }
+}
