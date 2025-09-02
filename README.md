@@ -89,7 +89,6 @@ Experimentation, Evaluation, Benchmarking
 - **Frequency**: Every 2 Hours
 - **Times**: 00:00, 02:00, 04:00, 06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00 UTC
 - **Timezone**: UTC
-- **File Naming**: `DD-MM-YYYY_HH-MM.md` (includes time)
 
 ## Usage
 
