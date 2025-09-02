@@ -1,85 +1,69 @@
-# Daily_paper_update
-Daily Paper Update is a curated repository that provides structured and technical summaries of recent research papers across multiple domains in Artificial Intelligence, Machine Learning, and Computer Science. The goal is to accelerate literature review, facilitate researchers, engineers, and students.
-This repository provides technical summaries, structured notes, and reproducibility insights for recent papers from arXiv, NeurIPS, ICML, ICLR, ACL, EMNLP, CVPR, MICCAI, IEEE, ACM, Springer, Nature, Science, and more.
+# Daily Paper Update
 
-Our goal is to:
+Daily abstracts from arXiv, NeurIPS, ICML, ICLR, ACL, CVPR, and other top venues.
 
-Accelerate literature review by providing concise yet technical digests.
+## What This Is
 
-Enable reproducibility by documenting datasets, methods, and evaluation protocols.
+A repository that posts paper abstracts daily. No fluff, just the abstracts organized by date and domain.
 
-Identify research gaps and trends across AI and computational sciences.
+## Structure
 
-🧠 Research Domains
+```
+daily-paper-update/
+├── 2025/
+│   ├── january/
+│   │   ├── 01-01-2025.md
+│   │   ├── 02-01-2025.md
+│   │   └── ...
+│   └── february/
+└── README.md
+```
 
-The repository spans multiple technical domains:
+## Format
 
-Machine Learning & AI
+Each daily file contains:
 
-Supervised, unsupervised, semi-supervised, self-supervised learning
+```markdown
+# Date: YYYY-MM-DD
 
-Generative AI (GANs, Diffusion, VAEs)
+## Paper Title
+**Authors**: Names  
+**Link**: [arXiv](url)  
+**Domain**: NLP/CV/ML/etc  
 
-Reinforcement Learning (RL, HRL, Offline RL)
+**Abstract**: 
+[Original abstract from paper]
 
-Deep Learning Architectures
+---
+```
 
-CNNs, RNNs, LSTMs, GRUs
+## Domains Covered
 
-Transformers, BERT, GPT, LLaMA, Mistral, MoE models
+- **ML/AI**: Core machine learning, deep learning
+- **NLP**: Language models, text processing
+- **CV**: Computer vision, image processing  
+- **RL**: Reinforcement learning
+- **Healthcare AI**: Medical AI applications
+- **Multimodal**: Cross-domain models
+- **Theory**: ML theory, optimization
 
-Graph Neural Networks (GNNs)
+## Usage
 
-Hybrid models (Neuro-symbolic, Multi-scale architectures)
+```bash
+# Clone repo
+git clone https://github.com/yourusername/daily-paper-update.git
 
-Natural Language Processing (NLP)
+# Go to current month
+cd daily-paper-update/2025/january/
 
-Large Language Models (LLMs), instruction-tuning, RAG
+# Read today's papers
+cat 02-01-2025.md
+```
 
-Information retrieval, knowledge graphs
+## Contributing
 
-Topic modeling, sentiment analysis
+Submit PRs with papers in the format above.
 
-Clinical & biomedical NLP
+## License
 
-Computer Vision (CV)
-
-Detection, segmentation, tracking
-
-Vision-Language Models (VLMs)
-
-Multimodal learning (text–image–video–audio fusion)
-
-3D vision, medical imaging, remote sensing
-
-Healthcare AI
-
-EHR-based modeling (ICU, MIMIC datasets)
-
-Predictive modeling (AKI, sepsis, mortality risk)
-
-Imaging (CT, MRI, histopathology)
-
-Clinical decision support
-
-Trustworthy & Efficient AI
-
-Interpretability, explainability (XAI)
-
-Fairness, bias mitigation
-
-Robustness & adversarial ML
-
-Uncertainty estimation & calibration
-
-Federated & distributed AI
-
-Emerging Areas
-
-Quantum Machine Learning
-
-Neuromorphic computing
-
-AI for sustainability & climate modeling
-
-Autonomous systems & robotics
+MIT
