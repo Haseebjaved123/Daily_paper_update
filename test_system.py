@@ -64,13 +64,16 @@ def create_sample_paper():
     
     # Create a sample paper
     sample_paper = {
-        'title': 'Sample Paper: Testing the Daily Paper Update System',
+        'title': 'Sample Paper: Testing the Enhanced Daily Paper Update System',
         'authors': ['Test Author 1', 'Test Author 2'],
-        'abstract': 'This is a sample abstract for testing the daily paper update system. It demonstrates how the system formats and stores paper information. The abstract contains enough text to meet the minimum length requirements and provides a realistic example of what the system will process.',
+        'abstract': 'This is a sample abstract for testing the enhanced daily paper update system. It demonstrates how the system formats and stores paper information with figures, insights, and detailed statistics. The abstract contains enough text to meet the minimum length requirements and provides a realistic example of what the system will process. This paper focuses on deep learning and neural networks with attention mechanisms.',
         'arxiv_id': '2025.01001',
         'arxiv_link': 'https://arxiv.org/abs/2025.01001',
         'domain': 'AI',
-        'published': '2025-01-01T00:00:00Z'
+        'published': '2025-01-01T00:00:00Z',
+        'categories': ['cs.AI', 'cs.LG'],
+        'word_count': 67,
+        'sentence_count': 4
     }
     
     # Format and save

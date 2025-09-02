@@ -21,7 +21,21 @@
   },
   "schedule": {
     "timezone": "UTC",
-    "hour": 6,
-    "minute": 0
+    "frequency": "every_2_hours",
+    "cron": "0 */2 * * *"
+  },
+  "enhanced_features": {
+    "include_figures": true,
+    "extract_insights": true,
+    "show_statistics": true,
+    "key_phrases_detection": true,
+    "methodology_analysis": true,
+    "complexity_rating": true
+  },
+  "figure_extraction": {
+    "enabled": true,
+    "fallback_to_placeholder": true,
+    "placeholder_style": "badge",
+    "max_figure_size": "1MB"
   }
 }
