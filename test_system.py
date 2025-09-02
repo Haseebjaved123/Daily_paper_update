@@ -6,34 +6,34 @@ Test script for the Daily Paper Update system
 import os
 import sys
 from datetime import datetime
-from daily_paper_fetcher import DailyPaperFetcher
+from daily_paper_fetcher import AdvancedPaperFetcher
 
 def test_paper_fetcher():
-    """Test the paper fetcher functionality"""
-    print("Testing Daily Paper Fetcher...")
+    """Test the advanced multi-source paper fetcher functionality"""
+    print("Testing Advanced Multi-Source Paper Fetcher...")
     
-    fetcher = DailyPaperFetcher()
+    fetcher = AdvancedPaperFetcher()
     
-    # Test fetching papers
-    print("1. Testing paper fetching...")
-    papers = fetcher.get_today_papers(max_results=10)
+    # Test fetching papers from multiple sources
+    print("1. Testing multi-source paper fetching...")
+    papers = fetcher.get_papers_from_multiple_sources(max_results=10)
     
     if papers:
-        print(f"   ✓ Successfully fetched {len(papers)} papers")
+        print(f"   ✓ Successfully fetched {len(papers)} papers from multiple sources")
         
-        # Test paper selection
-        print("2. Testing paper selection...")
-        selected = fetcher.select_paper(papers)
+        # Test enhanced paper selection
+        print("2. Testing enhanced paper selection...")
+        selected = fetcher.select_paper_enhanced(papers)
         
         if selected:
             print(f"   ✓ Selected paper: {selected['title'][:50]}...")
             print(f"   ✓ Domain: {selected['domain']}")
             print(f"   ✓ Authors: {len(selected['authors'])}")
             
-            # Test markdown formatting
-            print("3. Testing markdown formatting...")
+            # Test enhanced markdown formatting
+            print("3. Testing enhanced markdown formatting...")
             today = datetime.now().strftime("%Y-%m-%d")
-            markdown = fetcher.format_paper_markdown(selected, today)
+            markdown = fetcher.format_paper_markdown_enhanced(selected, today)
             
             if markdown and len(markdown) > 100:
                 print("   ✓ Markdown formatting successful")
@@ -59,25 +59,27 @@ def create_sample_paper():
     """Create a sample paper for testing"""
     print("\nCreating sample paper...")
     
-    fetcher = DailyPaperFetcher()
+    fetcher = AdvancedPaperFetcher()
     today = datetime.now().strftime("%Y-%m-%d")
     
-    # Create a sample paper
+    # Create a sample paper with source information
     sample_paper = {
-        'title': 'Sample Paper: Testing the Enhanced Daily Paper Update System',
+        'title': 'Sample Paper: Testing the Advanced Multi-Source Paper Intelligence System',
         'authors': ['Test Author 1', 'Test Author 2'],
-        'abstract': 'This is a sample abstract for testing the enhanced daily paper update system. It demonstrates how the system formats and stores paper information with figures, insights, and detailed statistics. The abstract contains enough text to meet the minimum length requirements and provides a realistic example of what the system will process. This paper focuses on deep learning and neural networks with attention mechanisms.',
+        'abstract': 'This is a sample abstract for testing the advanced multi-source paper intelligence system. It demonstrates how the system formats and stores paper information with figures, insights, and detailed statistics from multiple sources. The abstract contains enough text to meet the minimum length requirements and provides a realistic example of what the system will process. This paper focuses on deep learning and neural networks with attention mechanisms.',
         'arxiv_id': '2025.01001',
         'arxiv_link': 'https://arxiv.org/abs/2025.01001',
         'domain': 'AI',
         'published': '2025-01-01T00:00:00Z',
         'categories': ['cs.AI', 'cs.LG'],
         'word_count': 67,
-        'sentence_count': 4
+        'sentence_count': 4,
+        'source': 'papers_with_code',
+        'stars': 150
     }
     
-    # Format and save
-    markdown_content = fetcher.format_paper_markdown(sample_paper, today)
+    # Format and save using enhanced formatting
+    markdown_content = fetcher.format_paper_markdown_enhanced(sample_paper, today)
     file_path = fetcher.get_file_path(today)
     
     # Ensure directory exists
@@ -91,8 +93,8 @@ def create_sample_paper():
 
 def main():
     """Main test function"""
-    print("Daily Paper Update System Test")
-    print("=" * 40)
+    print("Advanced Multi-Source Paper Intelligence System Test")
+    print("=" * 60)
     
     # Test the fetcher
     if test_paper_fetcher():
