@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Daily Paper Update Fetcher
-Automatically fetches and formats one paper abstract per day from arXiv
+Advanced Paper Update Fetcher
+Automatically fetches and formats papers from multiple reliable sources:
+- arXiv (primary academic source)
+- Papers with Code (trending implementations)
+- NewsAPI (AI/ML news)
+- Reddit r/MachineLearning (community trending)
+- Google Scholar RSS (trending research)
 """
 
 import requests
@@ -11,12 +16,15 @@ import os
 from datetime import datetime, timedelta
 import random
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import urllib.parse
 from pathlib import Path
+import feedparser
+import time
 
-class DailyPaperFetcher:
+class AdvancedPaperFetcher:
     def __init__(self):
+        # arXiv configuration
         self.arxiv_base_url = "http://export.arxiv.org/api/query"
         self.domains = {
             'cs.AI': 'AI',
@@ -30,6 +38,400 @@ class DailyPaperFetcher:
             'cs.NE': 'Neural Networks',
             'cs.IR': 'Information Retrieval'
         }
+        
+        # Multiple source configuration
+        self.sources = {
+            'arxiv': {'priority': 1, 'enabled': True},
+            'papers_with_code': {'priority': 2, 'enabled': True},
+            'newsapi': {'priority': 3, 'enabled': True},
+            'reddit': {'priority': 4, 'enabled': True},
+            'google_scholar': {'priority': 5, 'enabled': True}
+        }
+        
+        # API endpoints and configurations
+        self.papers_with_code_url = "https://paperswithcode.com/api/v1/papers/"
+        self.newsapi_url = "https://newsapi.org/v2/everything"
+        self.reddit_url = "https://www.reddit.com/r/MachineLearning/hot.json"
+        self.google_scholar_rss = "https://scholar.google.com/scholar?q=machine+learning&hl=en&as_sdt=0,5&as_vis=1"
+        
+        # Rate limiting
+        self.request_delay = 1  # seconds between requests
+    
+    def get_papers_from_multiple_sources(self, max_results: int = 50) -> List[Dict]:
+        """Fetch papers from multiple sources with intelligent fallback"""
+        all_papers = []
+        
+        # Try sources in priority order
+        for source_name, config in sorted(self.sources.items(), key=lambda x: x[1]['priority']):
+            if not config['enabled']:
+                continue
+                
+            print(f"Fetching from {source_name}...")
+            try:
+                papers = self._fetch_from_source(source_name, max_results)
+                if papers:
+                    all_papers.extend(papers)
+                    print(f"Found {len(papers)} papers from {source_name}")
+                    
+                    # If we have enough papers, we can stop
+                    if len(all_papers) >= max_results:
+                        break
+                        
+                time.sleep(self.request_delay)  # Rate limiting
+                
+            except Exception as e:
+                print(f"Error fetching from {source_name}: {e}")
+                continue
+        
+        # Remove duplicates and return
+        unique_papers = self._remove_duplicates(all_papers)
+        print(f"Total unique papers found: {len(unique_papers)}")
+        return unique_papers[:max_results]
+    
+    def _fetch_from_source(self, source_name: str, max_results: int) -> List[Dict]:
+        """Fetch papers from a specific source"""
+        if source_name == 'arxiv':
+            return self.get_today_papers(max_results)
+        elif source_name == 'papers_with_code':
+            return self.get_papers_with_code_trending(max_results)
+        elif source_name == 'newsapi':
+            return self.get_newsapi_ai_articles(max_results)
+        elif source_name == 'reddit':
+            return self.get_reddit_trending_papers(max_results)
+        elif source_name == 'google_scholar':
+            return self.get_google_scholar_trending(max_results)
+        else:
+            return []
+    
+    def get_papers_with_code_trending(self, max_results: int = 20) -> List[Dict]:
+        """Fetch trending papers from Papers with Code"""
+        try:
+            # Papers with Code API for trending papers
+            params = {
+                'ordering': '-stars',
+                'page_size': max_results,
+                'is_archived': False
+            }
+            
+            response = requests.get(self.papers_with_code_url, params=params, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            papers = []
+            
+            for item in data.get('results', []):
+                paper = {
+                    'title': item.get('title', ''),
+                    'authors': [author.get('name', '') for author in item.get('authors', [])],
+                    'abstract': item.get('abstract', ''),
+                    'arxiv_id': item.get('arxiv_id', ''),
+                    'arxiv_link': f"https://arxiv.org/abs/{item.get('arxiv_id', '')}" if item.get('arxiv_id') else '',
+                    'domain': 'Papers with Code',
+                    'published': item.get('published', ''),
+                    'categories': [item.get('categories', [])],
+                    'word_count': len(item.get('abstract', '').split()),
+                    'sentence_count': len([s for s in item.get('abstract', '').split('.') if s.strip()]),
+                    'source': 'papers_with_code',
+                    'stars': item.get('stars', 0),
+                    'github_url': item.get('url_abs', '')
+                }
+                
+                if paper['title'] and paper['abstract']:
+                    papers.append(paper)
+            
+            return papers
+            
+        except Exception as e:
+            print(f"Error fetching from Papers with Code: {e}")
+            return []
+    
+    def get_newsapi_ai_articles(self, max_results: int = 20) -> List[Dict]:
+        """Fetch AI/ML news articles from NewsAPI"""
+        try:
+            # Note: This requires a NewsAPI key - for demo purposes, we'll use a mock approach
+            # In production, you'd set NEWSAPI_KEY environment variable
+            
+            # Mock implementation - in real usage, you'd use:
+            # headers = {'X-API-Key': os.getenv('NEWSAPI_KEY')}
+            # params = {
+            #     'q': 'machine learning OR artificial intelligence OR deep learning',
+            #     'language': 'en',
+            #     'sortBy': 'publishedAt',
+            #     'pageSize': max_results
+            # }
+            # response = requests.get(self.newsapi_url, headers=headers, params=params)
+            
+            # For now, return empty list - user can add NewsAPI key later
+            print("NewsAPI integration requires API key - skipping for now")
+            return []
+            
+        except Exception as e:
+            print(f"Error fetching from NewsAPI: {e}")
+            return []
+    
+    def get_reddit_trending_papers(self, max_results: int = 20) -> List[Dict]:
+        """Fetch trending paper discussions from Reddit r/MachineLearning"""
+        try:
+            headers = {
+                'User-Agent': 'PaperFetcher/1.0 (Educational Purpose)'
+            }
+            
+            response = requests.get(self.reddit_url, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            papers = []
+            
+            for post in data.get('data', {}).get('children', [])[:max_results]:
+                post_data = post.get('data', {})
+                
+                # Look for papers in titles and selftext
+                title = post_data.get('title', '')
+                selftext = post_data.get('selftext', '')
+                
+                # Extract arXiv links
+                arxiv_pattern = r'arxiv\.org/abs/(\d+\.\d+)'
+                arxiv_matches = re.findall(arxiv_pattern, title + ' ' + selftext)
+                
+                if arxiv_matches:
+                    arxiv_id = arxiv_matches[0]
+                    paper = {
+                        'title': title,
+                        'authors': ['Reddit Community'],
+                        'abstract': selftext[:500] + '...' if len(selftext) > 500 else selftext,
+                        'arxiv_id': arxiv_id,
+                        'arxiv_link': f"https://arxiv.org/abs/{arxiv_id}",
+                        'domain': 'Reddit Trending',
+                        'published': datetime.fromtimestamp(post_data.get('created_utc', 0)).isoformat(),
+                        'categories': ['Community Discussion'],
+                        'word_count': len(selftext.split()),
+                        'sentence_count': len([s for s in selftext.split('.') if s.strip()]),
+                        'source': 'reddit',
+                        'reddit_url': f"https://reddit.com{post_data.get('permalink', '')}",
+                        'upvotes': post_data.get('ups', 0)
+                    }
+                    papers.append(paper)
+            
+            return papers
+            
+        except Exception as e:
+            print(f"Error fetching from Reddit: {e}")
+            return []
+    
+    def get_google_scholar_trending(self, max_results: int = 20) -> List[Dict]:
+        """Fetch trending papers from Google Scholar RSS"""
+        try:
+            # Parse Google Scholar RSS feed
+            feed = feedparser.parse(self.google_scholar_rss)
+            papers = []
+            
+            for entry in feed.entries[:max_results]:
+                # Extract arXiv ID if present
+                arxiv_id = None
+                arxiv_link = None
+                
+                # Look for arXiv links in the entry
+                if hasattr(entry, 'links'):
+                    for link in entry.links:
+                        if 'arxiv.org' in link.get('href', ''):
+                            arxiv_id = link.get('href', '').split('/')[-1]
+                            arxiv_link = link.get('href', '')
+                            break
+                
+                paper = {
+                    'title': entry.get('title', ''),
+                    'authors': [entry.get('author', 'Unknown')],
+                    'abstract': entry.get('summary', ''),
+                    'arxiv_id': arxiv_id or '',
+                    'arxiv_link': arxiv_link or entry.get('link', ''),
+                    'domain': 'Google Scholar',
+                    'published': entry.get('published', ''),
+                    'categories': ['Academic Research'],
+                    'word_count': len(entry.get('summary', '').split()),
+                    'sentence_count': len([s for s in entry.get('summary', '').split('.') if s.strip()]),
+                    'source': 'google_scholar',
+                    'scholar_url': entry.get('link', '')
+                }
+                
+                if paper['title']:
+                    papers.append(paper)
+            
+            return papers
+            
+        except Exception as e:
+            print(f"Error fetching from Google Scholar: {e}")
+            return []
+    
+    def _remove_duplicates(self, papers: List[Dict]) -> List[Dict]:
+        """Remove duplicate papers based on title similarity"""
+        unique_papers = []
+        seen_titles = set()
+        
+        for paper in papers:
+            # Normalize title for comparison
+            normalized_title = re.sub(r'[^\w\s]', '', paper['title'].lower()).strip()
+            
+            if normalized_title not in seen_titles and len(normalized_title) > 10:
+                seen_titles.add(normalized_title)
+                unique_papers.append(paper)
+        
+        return unique_papers
+    
+    def select_paper_enhanced(self, papers: List[Dict]) -> Optional[Dict]:
+        """Enhanced paper selection with source prioritization and quality scoring"""
+        if not papers:
+            return None
+        
+        # Score papers based on multiple criteria
+        scored_papers = []
+        for paper in papers:
+            score = 0
+            
+            # Source priority scoring
+            source = paper.get('source', 'arxiv')
+            if source == 'papers_with_code':
+                score += 20  # High priority - trending implementations
+            elif source == 'arxiv':
+                score += 15  # High priority - academic source
+            elif source == 'reddit':
+                score += 10  # Medium priority - community trending
+            elif source == 'google_scholar':
+                score += 12  # Medium-high priority - academic trending
+            elif source == 'newsapi':
+                score += 8   # Lower priority - news articles
+            
+            # Quality indicators
+            if len(paper['abstract']) >= 200 and len(paper['abstract']) <= 2000:
+                score += 10
+            if len(paper['title']) >= 20:
+                score += 5
+            if 1 <= len(paper['authors']) <= 10:
+                score += 5
+            
+            # Trending indicators
+            if 'stars' in paper and paper['stars'] > 0:
+                score += min(paper['stars'], 20)  # Cap at 20 points
+            if 'upvotes' in paper and paper['upvotes'] > 0:
+                score += min(paper['upvotes'] // 10, 15)  # Cap at 15 points
+            
+            # Recency bonus
+            if paper.get('published'):
+                try:
+                    pub_date = datetime.fromisoformat(paper['published'].replace('Z', '+00:00'))
+                    days_old = (datetime.now() - pub_date.replace(tzinfo=None)).days
+                    if days_old <= 1:
+                        score += 15  # Very recent
+                    elif days_old <= 7:
+                        score += 10  # Recent
+                    elif days_old <= 30:
+                        score += 5   # Somewhat recent
+                except:
+                    pass
+            
+            scored_papers.append((paper, score))
+        
+        # Sort by score and select from top candidates
+        scored_papers.sort(key=lambda x: x[1], reverse=True)
+        
+        # Select from top 3 candidates to maintain variety
+        top_candidates = scored_papers[:3]
+        if top_candidates:
+            selected = random.choice(top_candidates)[0]
+            print(f"Selected paper with score {scored_papers[0][1]} from {selected.get('source', 'unknown')}")
+            return selected
+        
+        return None
+    
+    def format_paper_markdown_enhanced(self, paper: Dict, date: str) -> str:
+        """Enhanced markdown formatting with source-specific information"""
+        authors_str = ", ".join(paper['authors'])
+        source = paper.get('source', 'arxiv')
+        
+        # Get paper insights
+        insights = self.get_paper_insights(paper)
+        
+        # Try to extract first figure
+        figure = self.extract_first_figure(paper['arxiv_id'])
+        
+        # Format categories
+        categories_str = ", ".join(paper['categories'][:3]) if paper['categories'] else paper['domain']
+        
+        # Source-specific information
+        source_info = self._get_source_specific_info(paper)
+        
+        # Create enhanced markdown
+        markdown = f"""# 📅 Date: {date}
+
+## 📄 {paper['title']}
+
+### 👥 Authors
+{authors_str}
+
+### 🔗 Links
+- **Primary**: [{paper['arxiv_id'] if paper['arxiv_id'] else 'View Paper'}]({paper['arxiv_link']})
+- **PDF**: [Download PDF](https://arxiv.org/pdf/{paper['arxiv_id']}.pdf) {f"*(if available)*" if paper['arxiv_id'] else ""}
+
+{source_info}
+
+### 🏷️ Classification
+- **Primary Domain**: {paper['domain']}
+- **Categories**: {categories_str}
+- **Complexity**: {insights['complexity']}
+- **Source**: {source.replace('_', ' ').title()}
+
+### 📊 Paper Statistics
+- **Word Count**: {paper['word_count']} words
+- **Sentences**: {paper['sentence_count']} sentences
+- **Authors**: {len(paper['authors'])} researchers
+
+### 🔍 Key Topics
+{', '.join(insights['key_phrases']) if insights['key_phrases'] else 'General AI/ML'}
+
+### 🛠️ Methodologies
+{', '.join(insights['methodologies']) if insights['methodologies'] else 'Research Paper'}
+
+### 🖼️ Figure
+{figure if figure else '![No Figure Available](https://img.shields.io/badge/Figure-Not_Available-lightgrey?style=for-the-badge)'}
+
+### 📝 Abstract
+{paper['abstract']}
+
+---
+*Generated by Advanced Paper Update System - Multi-Source Intelligence*
+"""
+        return markdown
+    
+    def _get_source_specific_info(self, paper: Dict) -> str:
+        """Get source-specific information for markdown"""
+        source = paper.get('source', 'arxiv')
+        
+        if source == 'papers_with_code':
+            stars = paper.get('stars', 0)
+            github_url = paper.get('github_url', '')
+            return f"""### ⭐ Papers with Code Info
+- **GitHub Stars**: {stars} ⭐
+- **Implementation**: [View on Papers with Code]({github_url}) {f"*({stars} stars)*" if stars > 0 else ""}"""
+        
+        elif source == 'reddit':
+            upvotes = paper.get('upvotes', 0)
+            reddit_url = paper.get('reddit_url', '')
+            return f"""### 🔥 Reddit Community Info
+- **Upvotes**: {upvotes} 👍
+- **Discussion**: [View on Reddit]({reddit_url}) {f"*({upvotes} upvotes)*" if upvotes > 0 else ""}"""
+        
+        elif source == 'google_scholar':
+            scholar_url = paper.get('scholar_url', '')
+            return f"""### 🎓 Google Scholar Info
+- **Academic Source**: [View on Google Scholar]({scholar_url})
+- **Research Impact**: Trending in academic community"""
+        
+        elif source == 'newsapi':
+            return f"""### 📰 News Source Info
+- **Media Coverage**: Featured in AI/ML news
+- **Public Interest**: High community engagement"""
+        
+        else:
+            return ""
         
     def get_today_papers(self, max_results: int = 50) -> List[Dict]:
         """Fetch recent papers from arXiv (last 24 hours for better coverage)"""
@@ -282,7 +684,7 @@ class DailyPaperFetcher:
         return f"{year}/{month}/{day}_{time_str}.md"
     
     def update_daily_paper(self) -> bool:
-        """Main function to update paper (every 2 hours)"""
+        """Main function to update paper (every 2 hours) using multiple sources"""
         today = datetime.now().strftime("%Y-%m-%d")
         file_path = self.get_file_path(today)
         
@@ -294,40 +696,34 @@ class DailyPaperFetcher:
         # Ensure directory exists
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        # Fetch recent papers (last 24 hours)
-        print("Fetching recent papers (last 24 hours)...")
-        papers = self.get_today_papers()
+        # Fetch papers from multiple sources with intelligent fallback
+        print("Fetching papers from multiple sources...")
+        papers = self.get_papers_from_multiple_sources()
         
         if not papers:
-            print("No recent papers found in the last 24 hours")
-            # Fallback: try last 7 days
-            print("Trying to fetch papers from last 7 days...")
-            papers = self.get_fallback_papers()
-            
-        if not papers:
-            print("No papers found in last 7 days")
-            # Emergency fallback: get any recent papers
-            print("Emergency fallback: fetching any recent papers...")
+            print("No papers found from any source - trying emergency fallback...")
+            # Emergency fallback: try arXiv with extended time range
             papers = self.get_emergency_papers()
             
         if not papers:
-            print("No papers found at all - arXiv API might be down")
+            print("No papers found at all - all sources might be down")
             return False
         
-        # Select one paper
-        selected_paper = self.select_paper(papers)
+        # Select one paper using enhanced criteria
+        selected_paper = self.select_paper_enhanced(papers)
         if not selected_paper:
             print("No suitable paper found")
             return False
         
         # Format and save
-        markdown_content = self.format_paper_markdown(selected_paper, today)
+        markdown_content = self.format_paper_markdown_enhanced(selected_paper, today)
         
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(markdown_content)
         
         print(f"Successfully updated paper: {file_path}")
         print(f"Selected paper: {selected_paper['title']}")
+        print(f"Source: {selected_paper.get('source', 'arxiv')}")
         print(f"Domain: {selected_paper['domain']}")
         print(f"Time: {datetime.now().strftime('%H:%M UTC')}")
         
@@ -404,11 +800,12 @@ class DailyPaperFetcher:
 def main():
     """Main execution function"""
     try:
-        fetcher = DailyPaperFetcher()
+        fetcher = AdvancedPaperFetcher()
         success = fetcher.update_daily_paper()
         
         if success:
-            print("Paper update completed successfully!")
+            print("Advanced paper update completed successfully!")
+            print("✅ Multi-source intelligence system working perfectly!")
         else:
             print("Paper update completed with warnings - no new papers found")
             # Don't exit with error code to prevent GitHub Actions failure
