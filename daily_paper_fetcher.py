@@ -154,9 +154,19 @@ class AdvancedPaperFetcher:
         """Fetch papers from multiple sources with intelligent fallback"""
         all_papers = []
         
-        # Try sources in priority order
-        for source_name, config in sorted(self.sources.items(), key=lambda x: x[1]['priority']):
-            if not config['enabled']:
+        # Prioritize working sources first (GitHub, RSS feeds, mock data)
+        working_sources = [
+            'github_trending', 'huggingface_papers', 'openai_blog', 'deepmind_blog', 
+            'google_ai_blog', 'nvidia_blog', 'mit_news', 'stanford_ai', 'berkeley_ai',
+            'towards_data_science', 'distill_pub', 'techcrunch_ai', 'venturebeat_ai',
+            'the_verge_ai', 'wired_ai', 'arstechnica_ai', 'quantamagazine',
+            'nature_machine_intelligence', 'ai_news', 'machine_learning_mastery',
+            'fast_ai', 'pytorch_blog', 'tensorflow_blog', 'keras_blog', 'jupyter_blog'
+        ]
+        
+        # Try working sources first
+        for source_name in working_sources:
+            if source_name not in self.sources or not self.sources[source_name]['enabled']:
                 continue
                 
             print(f"Fetching from {source_name}...")
@@ -164,7 +174,7 @@ class AdvancedPaperFetcher:
                 papers = self._fetch_from_source(source_name, max_results)
                 if papers:
                     all_papers.extend(papers)
-                    print(f"Found {len(papers)} papers from {source_name}")
+                    print(f"✓ Found {len(papers)} papers from {source_name}")
                     
                     # If we have enough papers, we can stop
                     if len(all_papers) >= max_results:
@@ -173,8 +183,36 @@ class AdvancedPaperFetcher:
                 time.sleep(self.request_delay)  # Rate limiting
                 
             except Exception as e:
-                print(f"Error fetching from {source_name}: {e}")
+                print(f"⚠️ Error fetching from {source_name}: {e}")
                 continue
+        
+        # If we still don't have enough papers, try other sources
+        if len(all_papers) < max_results // 2:
+            print("Trying additional sources...")
+            for source_name, config in sorted(self.sources.items(), key=lambda x: x[1]['priority']):
+                if source_name in working_sources or not config['enabled']:
+                    continue
+                    
+                print(f"Fetching from {source_name}...")
+                try:
+                    papers = self._fetch_from_source(source_name, max_results)
+                    if papers:
+                        all_papers.extend(papers)
+                        print(f"✓ Found {len(papers)} papers from {source_name}")
+                        
+                        if len(all_papers) >= max_results:
+                            break
+                            
+                    time.sleep(self.request_delay)
+                    
+                except Exception as e:
+                    print(f"⚠️ Error fetching from {source_name}: {e}")
+                    continue
+        
+        # If still no papers, use mock data
+        if not all_papers:
+            print("No papers from external sources, using mock data...")
+            all_papers = self._get_all_mock_papers()
         
         # Remove duplicates and return
         unique_papers = self._remove_duplicates(all_papers)
@@ -405,6 +443,60 @@ class AdvancedPaperFetcher:
         
         return unique_papers
     
+    def _get_all_mock_papers(self) -> List[Dict]:
+        """Get all mock papers from all sources as ultimate fallback"""
+        all_mock_papers = []
+        
+        # Add papers from all mock sources
+        all_mock_papers.extend(self._get_mock_papers_with_code())
+        all_mock_papers.extend(self._get_mock_github_repos())
+        all_mock_papers.extend(self._get_mock_huggingface_papers())
+        all_mock_papers.extend(self._get_mock_conference_papers('neurips_papers'))
+        all_mock_papers.extend(self._get_mock_conference_papers('icml_papers'))
+        all_mock_papers.extend(self._get_mock_conference_papers('iclr_papers'))
+        all_mock_papers.extend(self._get_mock_academic_papers('ieee_xplore'))
+        all_mock_papers.extend(self._get_mock_academic_papers('acm_digital_library'))
+        all_mock_papers.extend(self._get_mock_reddit_papers())
+        
+        # Add some additional mock RSS feed papers
+        all_mock_papers.extend(self._get_mock_rss_papers())
+        
+        print(f"Generated {len(all_mock_papers)} mock papers from all sources")
+        return all_mock_papers
+    
+    def _get_mock_rss_papers(self) -> List[Dict]:
+        """Mock RSS feed papers for fallback"""
+        return [
+            {
+                'title': 'OpenAI Announces New Breakthrough in Large Language Models',
+                'authors': ['OpenAI Research Team'],
+                'abstract': 'OpenAI has announced a new breakthrough in large language model development, achieving significant improvements in reasoning capabilities and multimodal understanding. This advancement represents a major step forward in artificial intelligence research.',
+                'arxiv_id': '2024.12003',
+                'arxiv_link': 'https://arxiv.org/abs/2024.12003',
+                'domain': 'OpenAI Blog',
+                'published': '2024-12-01T00:00:00Z',
+                'categories': ['Large Language Models', 'AI Research'],
+                'word_count': 35,
+                'sentence_count': 2,
+                'source': 'openai_blog',
+                'rss_url': 'https://openai.com/blog/breakthrough-announcement'
+            },
+            {
+                'title': 'DeepMind Achieves New Milestone in Protein Folding Prediction',
+                'authors': ['DeepMind Research Team'],
+                'abstract': 'DeepMind has achieved a new milestone in protein folding prediction using advanced machine learning techniques. This breakthrough has significant implications for drug discovery and biological research.',
+                'arxiv_id': '2024.12004',
+                'arxiv_link': 'https://arxiv.org/abs/2024.12004',
+                'domain': 'DeepMind Blog',
+                'published': '2024-12-01T00:00:00Z',
+                'categories': ['Protein Folding', 'Bioinformatics'],
+                'word_count': 30,
+                'sentence_count': 2,
+                'source': 'deepmind_blog',
+                'rss_url': 'https://deepmind.com/blog/protein-folding-milestone'
+            }
+        ]
+    
     def get_github_trending_repos(self, max_results: int = 20) -> List[Dict]:
         """Fetch trending AI/ML repositories from GitHub"""
         try:
@@ -412,6 +504,11 @@ class AdvancedPaperFetcher:
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/vnd.github.v3+json'
             }
+            
+            # Add GitHub token if available
+            github_token = os.getenv('GITHUB_TOKEN')
+            if github_token:
+                headers['Authorization'] = f'token {github_token}'
             
             # Search for trending AI/ML repositories
             params = {
@@ -477,7 +574,8 @@ class AdvancedPaperFetcher:
         """Fetch papers from RSS feeds"""
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/rss+xml, application/xml, text/xml, */*'
             }
             
             feed_url = self.endpoints.get(source_name, '')
@@ -491,13 +589,18 @@ class AdvancedPaperFetcher:
             feed = feedparser.parse(response.content)
             papers = []
             
+            # Check if feed has entries
+            if not feed.entries:
+                print(f"No entries found in RSS feed {source_name}")
+                return []
+            
             for entry in feed.entries[:max_results]:
                 # Extract arXiv ID if present
                 arxiv_id = None
                 arxiv_link = None
                 
                 # Look for arXiv links in the content
-                content = entry.get('summary', '') + ' ' + entry.get('title', '')
+                content = (entry.get('summary', '') or '') + ' ' + (entry.get('title', '') or '')
                 arxiv_pattern = r'arxiv\.org/abs/(\d+\.\d+)'
                 arxiv_matches = re.findall(arxiv_pattern, content)
                 
@@ -505,17 +608,26 @@ class AdvancedPaperFetcher:
                     arxiv_id = arxiv_matches[0]
                     arxiv_link = f"https://arxiv.org/abs/{arxiv_id}"
                 
+                # Get title and summary
+                title = entry.get('title', '').strip()
+                summary = entry.get('summary', '').strip()
+                
+                # Clean HTML tags from summary
+                if summary:
+                    summary = re.sub(r'<[^>]+>', '', summary)
+                    summary = summary[:500] + '...' if len(summary) > 500 else summary
+                
                 paper = {
-                    'title': entry.get('title', ''),
+                    'title': title,
                     'authors': [entry.get('author', 'Unknown')],
-                    'abstract': entry.get('summary', '')[:500] + '...' if len(entry.get('summary', '')) > 500 else entry.get('summary', ''),
+                    'abstract': summary or 'RSS feed article about AI/ML research and developments',
                     'arxiv_id': arxiv_id or '',
                     'arxiv_link': arxiv_link or entry.get('link', ''),
                     'domain': source_name.replace('_', ' ').title(),
                     'published': entry.get('published', ''),
                     'categories': ['Blog Post', 'News'],
-                    'word_count': len(entry.get('summary', '').split()),
-                    'sentence_count': len([s for s in entry.get('summary', '').split('.') if s.strip()]),
+                    'word_count': len(summary.split()) if summary else 10,
+                    'sentence_count': len([s for s in summary.split('.') if s.strip()]) if summary else 1,
                     'source': source_name,
                     'rss_url': entry.get('link', '')
                 }
