@@ -57,13 +57,30 @@ def test_paper_fetcher():
         print("   ✓ Testing fallback mechanisms...")
         
         # Test with mock data to ensure the system works
-        print("   ✓ Testing with mock data...")
-        mock_papers = fetcher._get_mock_papers_with_code()
-        if mock_papers:
-            print(f"   ✓ Mock papers available: {len(mock_papers)}")
-            selected = fetcher.select_paper_enhanced(mock_papers)
+        print("   ✓ Testing with mock data from multiple sources...")
+        
+        # Test multiple mock sources
+        mock_sources = [
+            ('Papers with Code', fetcher._get_mock_papers_with_code()),
+            ('GitHub Trending', fetcher._get_mock_github_repos()),
+            ('Hugging Face', fetcher._get_mock_huggingface_papers()),
+            ('Conference Papers', fetcher._get_mock_conference_papers('neurips_papers')),
+            ('Academic Database', fetcher._get_mock_academic_papers('ieee_xplore')),
+            ('Reddit Community', fetcher._get_mock_reddit_papers())
+        ]
+        
+        all_mock_papers = []
+        for source_name, papers in mock_sources:
+            if papers:
+                all_mock_papers.extend(papers)
+                print(f"   ✓ {source_name}: {len(papers)} papers")
+        
+        if all_mock_papers:
+            print(f"   ✓ Total mock papers available: {len(all_mock_papers)}")
+            selected = fetcher.select_paper_enhanced(all_mock_papers)
             if selected:
                 print(f"   ✓ Mock paper selection successful: {selected['title'][:50]}...")
+                print(f"   ✓ Source: {selected.get('source', 'unknown')}")
                 return True
         
         print("   ✗ All fallback mechanisms failed")
