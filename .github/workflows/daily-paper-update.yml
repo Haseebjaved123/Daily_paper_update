@@ -63,8 +63,8 @@ jobs:
     - name: Commit and push changes
       if: steps.verify-changed-files.outputs.changed == 'true'
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "Advanced Paper Bot"
+        git config --local user.email "hjresearch123@users.noreply.github.com"
+        git config --local user.name "hjresearch123"
         git add .
         git commit -m "🤖 Advanced Paper Update: $(date +'%Y-%m-%d %H:%M UTC') - Multi-Source Intelligence"
         git push
